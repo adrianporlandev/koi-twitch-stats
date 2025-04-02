@@ -1,8 +1,8 @@
 ---
 import { profileImages } from "../../components/profileimages";
 import Layout from "../../layouts/Layout.astro";
-import StreamerStats from '../../components/StreamerStats';
-
+import { StreamersAPI } from "../../lib/api";
+import StreamerProfile from "../../components/StreamerProfile.astro";
 
 export function getStaticPaths() {
   return Object.keys(profileImages).map((streamer_name) => ({
@@ -12,19 +12,23 @@ export function getStaticPaths() {
 
 const { streamer_name } = Astro.params;
 
+// Fetch advanced streamer stats during build time
+let streamerStats = null;
+try {
+  streamerStats = await StreamersAPI.getAdvancedStats(streamer_name, "7d");
+} catch (error) {
+  console.error(`Failed to fetch advanced stats for ${streamer_name}:`, error);
+}
 
+const profileImage = profileImages[streamer_name] || null;
 ---
 
-<Layout>
-  <div class="container">
-    <div class="streamer">
-      {streamer_name && profileImages[streamer_name] ? (
-        <img src={profileImages[streamer_name]} alt={streamer_name} />
-      ) : (
-        <p>Streamer profile image not available</p>
-      )}
-      <h1>{streamer_name}</h1>
-    </div>
-    <StreamerStats streamerName={streamer_name} />
-  </div>
+<Layout title="{streamer_name}" description="Streamer Profile Page">
+  
+    <StreamerProfile 
+      streamerName={streamer_name} 
+      profileImage={profileImage} 
+      stats={streamerStats} 
+    />
+  
 </Layout>

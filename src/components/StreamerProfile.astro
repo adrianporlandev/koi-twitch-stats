@@ -1,0 +1,127 @@
+---
+export interface StreamerProfileProps {
+  streamerName: string;
+  profileImage: string | null;
+  stats: {
+    hours_streamed: number;
+    avg_viewers: number;
+    peak_viewers: number;
+    games_streamed: string[];
+    active_days: number;
+    time_range: string;
+  } | null;
+}
+
+const { streamerName, profileImage, stats } = Astro.props;
+const API_URL = import.meta.env.PUBLIC_API_URL
+
+// Llamada a la API para obtener el ranking basado en avg_viewers
+let rank = null;
+try {
+  // Obtén la lista de streamers desde la API `streamers/top`
+const topStreamers = await fetch(`${API_URL}/streamers/top`).then((res) =>
+    res.json()
+);
+
+  // Obtén el avg_viewers de cada streamer llamando a su API individual
+  const streamersWithAvgViewers = await Promise.all(
+    topStreamers.map(async (streamer: { streamer_name: string }) => {
+      const streamerData = await fetch(
+        `${API_URL}/streamers/${streamer.streamer_name}`
+      ).then((res) => res.json());
+
+      // Calcula el avg_viewers desde los datos del streamer
+      const avgViewers = streamerData.reduce((sum: number, session: { viewers_count: number }) => sum + session.viewers_count, 0) / streamerData.length;
+
+      return {
+        ...streamer,
+        avg_viewers: avgViewers,
+      };
+    })
+  );
+
+  // Ordenar streamers por avg_viewers en orden descendente
+  const sortedStreamers = streamersWithAvgViewers.sort((a, b) => b.avg_viewers - a.avg_viewers);
+
+  // Encuentra la posición del streamer actual
+  rank = sortedStreamers.findIndex((streamer) => streamer.streamer_name === streamerName) + 1;
+} catch (error) {
+  console.error("Error fetching top streamers or avg_viewers:", error);
+}
+---
+<main class="min-h-screen bg-gray-900">
+    <!-- Header con fondo extendido -->
+    <section class="bg-[#301E6A] p-8 w-full">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center md:items-start">
+        <div class="w-32 h-32 flex-shrink-0 mb-4 md:mb-0 md:mr-6">
+          {streamerName && profileImage ? (
+            <img
+              src={profileImage}
+              alt={streamerName}
+              class="w-full h-full object-cover rounded-full border-4 border-indigo-500"
+            />
+          ) : (
+            <p class="text-gray-400 text-center">Imagen no disponible</p>
+          )}
+        </div>
+        <div class="text-left">
+          <h2 class="text-4xl font-bold text-white">{streamerName}</h2>
+          <nav class="mt-4 flex space-x-4">
+            <a href="#" class="text-gray-300 hover:text-white">Overview</a>
+            <a href="#" class="text-gray-300 hover:text-white">Streams</a>
+            <a href="#" class="text-gray-300 hover:text-white">Games</a>
+            <a href="#" class="text-gray-300 hover:text-white">Subs</a>
+            <a href="#" class="text-gray-300 hover:text-white">Statistics</a>
+            <a href="#" class="text-gray-300 hover:text-white">Clips</a>
+          </nav>
+        </div>
+        <div class="ml-auto mt-4 md:mt-0">
+            {rank ? (
+              <span class="bg-yellow-500 text-black px-4 py-2 rounded-full text-sm font-bold">
+                RANK #{rank}
+              </span>
+            ) : (
+              <span class="bg-gray-500 text-white px-4 py-2 rounded-full text-sm font-bold">
+                RANK N/A
+              </span>
+            )}
+          </div>
+      </div>
+    </section>
+  
+    <!-- Resumen de estadísticas -->
+    <section class="p-8 w-full">
+      <div class="max-w-7xl mx-auto">
+        <h3 class="text-gray-300 text-lg font-semibold mb-4">Performance Summary</h3>
+        {stats ? (
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Tarjeta Horas Stremeadas -->
+            <div class="bg-gray-800 p-4 rounded-lg shadow flex flex-col items-center">
+              <p class="text-red-500 font-bold text-2xl">{stats.hours_streamed.toFixed(1)}</p>
+              <p class="text-gray-400 text-sm">Hours Streamed</p>
+            </div>
+  
+            <!-- Tarjeta Media de Viewers -->
+            <div class="bg-gray-800 p-4 rounded-lg shadow flex flex-col items-center">
+              <p class="text-green-500 font-bold text-2xl">{stats.avg_viewers.toLocaleString()}</p>
+              <p class="text-gray-400 text-sm">Average Viewers</p>
+            </div>
+  
+            <!-- Tarjeta Peak Viewers -->
+            <div class="bg-gray-800 p-4 rounded-lg shadow flex flex-col items-center">
+              <p class="text-green-500 font-bold text-2xl">{stats.peak_viewers.toLocaleString()}</p>
+              <p class="text-gray-400 text-sm">Peak Viewers</p>
+            </div>
+  
+            <!-- Tarjeta Días Activos -->
+            <div class="bg-gray-800 p-4 rounded-lg shadow flex flex-col items-center">
+              <p class="text-blue-500 font-bold text-2xl">{stats.active_days} / 7</p>
+              <p class="text-gray-400 text-sm">Active Days</p>
+            </div>
+          </div>
+        ) : (
+          <p class="text-gray-400 text-center">Estadísticas no disponibles para este streamer.</p>
+        )}
+      </div>
+    </section>
+  </main>

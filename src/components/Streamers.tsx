@@ -35,9 +35,7 @@ const Streamers: FunctionComponent = () => {
                         <h3 className="text-white text-2xl font-semibold mb-2">
                             {streamer.streamer_name}
                         </h3>
-                        <p className="text-gray-300 text-lg">
-                            Viewers: {streamer.total_viewers}
-                        </p>
+                        
                     </a>
                 ))}
             </div>
