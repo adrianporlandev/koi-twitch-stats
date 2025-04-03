@@ -1,6 +1,7 @@
 import type { FunctionComponent } from 'react'
 import { profileImages } from './profileimages'
 
+
 interface Streamer {
     streamer_name: string;
     total_viewers: number;

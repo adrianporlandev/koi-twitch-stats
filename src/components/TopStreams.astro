@@ -1,0 +1,64 @@
+---
+import { profileImages } from "./profileimages";
+const API_URL: string = import.meta.env.PUBLIC_API_URL;
+
+interface Stream {
+  user_name: string;
+  viewer_count: number;
+  profileImage: string;
+}
+
+let liveStreams: Stream[] = [];
+
+try {
+  const response = await fetch(`${API_URL}/live`);
+  const data: { live: Stream[] } = await response.json();
+
+  // Agrega las URLs de las imágenes de perfil desde profileImages
+  liveStreams = data.live.map((stream) => ({
+    ...stream,
+    profileImage: profileImages[stream.user_name] || '', // Usa una cadena vacía si no se encuentra
+  }));
+
+  // Ordena liveStreams por viewer_count de mayor a menor
+  liveStreams.sort((a, b) => b.viewer_count - a.viewer_count);
+
+} catch (error) {
+  console.error("Error fetching live streams:", error);
+}
+---
+
+<div class="p-6 bg-gray-100 rounded-lg shadow-md">
+  <h1 class="text-2xl font-bold text-gray-800 mb-4">Top Live Streams</h1>
+
+  {liveStreams.length > 0 ? (
+    <ul class="space-y-4">
+      {liveStreams.map((stream) => (
+        <li class="p-4 bg-white rounded-lg shadow hover:shadow-lg transition-shadow flex items-center space-x-4">
+          <div class="flex items-center space-x-4">
+            {stream.profileImage ? (
+              <img
+                src={stream.profileImage}
+                alt={stream.user_name}
+                class="w-16 h-16 object-cover rounded-full"
+              />
+            ) : (
+              <div class="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
+                <p class="text-gray-500">No Image</p>
+              </div>
+            )}
+            <div>
+              <h2 class="text-lg font-semibold text-gray-700">{stream.user_name}</h2>
+              <p class="text-sm text-gray-500">Viewers: {stream.viewer_count}</p>
+            </div>
+          </div>
+          <div class="ml-auto">
+            <p class="text-sm text-gray-500">{stream.viewer_count}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p class="text-gray-600">No live streams available.</p>
+  )}
+</div>
